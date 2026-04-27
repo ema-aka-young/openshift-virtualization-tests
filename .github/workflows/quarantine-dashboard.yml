@@ -1,0 +1,56 @@
+name: Generate Quarantine Dashboard
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Generate quarantine dashboard
+        run: |
+          mkdir -p output
+          uv run quarantine-dashboard --output-dir output --keep-clones
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Upload dashboard as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarantine-dashboard-${{ steps.timestamp.outputs.date }}
+          path: output/dashboard.html
+          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
+          destination_dir: reports
+          keep_files: true
+          commit_message: 'Update quarantine dashboard - ${{ steps.timestamp.outputs.date }}'
+
+      - name: Comment on workflow run
+        run: |
+          echo "✅ Dashboard generated successfully!"
+          echo "📊 View at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/reports/dashboard.html"

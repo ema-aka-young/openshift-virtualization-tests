@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 8 * * 1'
   workflow_dispatch:
+  push:
+    branches:
+      - quarantine-dashboard  # temp
 
 permissions:
   contents: write

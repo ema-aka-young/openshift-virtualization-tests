@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier2 Quarantine Status</title>
+    <style>
+        :root {
+            --green: #22c55e;
+            --yellow: #eab308;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --dark: #1f2937;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--light-gray);
+            color: var(--dark);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section h2 { margin-bottom: 1rem; color: var(--dark); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--light-gray); }
+        th { background: var(--light-gray); font-weight: 600; }
+        tr:hover { background: #f9fafb; }
+        .health { font-weight: bold; }
+        .health.green { color: var(--green); }
+        .health.yellow { color: var(--yellow); }
+        .health.red { color: var(--red); }
+        .team-header {
+            background: var(--light-gray);
+            padding: 0.75rem 1rem;
+            margin: 1rem 0 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .test-item {
+            padding: 0.75rem 1rem;
+            border-left: 3px solid var(--red);
+            margin-bottom: 0.5rem;
+            background: #fef2f2;
+        }
+        .test-item code { background: #fee2e2; padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875rem; }
+        .test-item a { color: var(--blue); text-decoration: none; }
+        .test-item a:hover { text-decoration: underline; }
+        .test-item .meta { color: var(--gray); font-size: 0.875rem; margin-top: 0.25rem; }
+        .note {
+            background: #eff6ff;
+            border-left: 3px solid var(--blue);
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--light-gray);
+            padding-bottom: 0.5rem;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: var(--light-gray);
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            font-size: 0.875rem;
+        }
+        .tab-btn.active {
+            background: var(--blue);
+            color: white;
+        }
+        .tab-btn:hover:not(.active) {
+            background: #e5e7eb;
+        }
+        .tab-separator {
+            display: flex;
+            align-items: center;
+            padding: 0 0.25rem;
+            color: var(--gray);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .footer {
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.875rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tier2 Quarantine Status</h1>
+
+        <div class="section">
+            <h2>Version Summary</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Repository</th>
+                        <th>Version</th>
+                        <th>Total</th>
+                        <th>Active</th>
+                        <th>Quarantined</th>
+                        <th>Health</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>openshift-virtualization-tests</td>
+                        <td>main</td>
+                        <td>1,125</td>
+                        <td>1,104</td>
+                        <td>21</td>
+                        <td><span class="health yellow">98.1%</span></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>cnv-4.21</td>
+                        <td>1,111</td>
+                        <td>1,093</td>
+                        <td>18</td>
+                        <td><span class="health yellow">98.4%</span></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>cnv-4.20</td>
+                        <td>1,109</td>
+                        <td>1,088</td>
+                        <td>21</td>
+                        <td><span class="health yellow">98.1%</span></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>cnv-4.19</td>
+                        <td>1,086</td>
+                        <td>1,068</td>
+                        <td>18</td>
+                        <td><span class="health yellow">98.3%</span></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>cnv-4.18</td>
+                        <td>1,043</td>
+                        <td>1,032</td>
+                        <td>11</td>
+                        <td><span class="health yellow">98.9%</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <div class="section">
+            <h2>Team Breakdown (Quarantined by Version)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan='2'>Team</th>
+                        <th colspan='5'>openshift-virtualization-tests</th>
+                    </tr>
+                    <tr>
+                        <th>main</th>
+                        <th>cnv-4.21</th>
+                        <th>cnv-4.20</th>
+                        <th>cnv-4.19</th>
+                        <th>cnv-4.18</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Chaos</td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health green">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>Infrastructure</td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health yellow">1</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health green">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>Install Upgrade Operators</td>
+                        <td><span class="health yellow">3</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">2</span></td>
+                    </tr>
+                    <tr>
+                        <td>Network</td>
+                        <td><span class="health yellow">5</span></td>
+                        <td><span class="health yellow">4</span></td>
+                        <td><span class="health yellow">5</span></td>
+                        <td><span class="health yellow">3</span></td>
+                        <td><span class="health yellow">3</span></td>
+                    </tr>
+                    <tr>
+                        <td>Observability</td>
+                        <td><span class="health yellow">1</span></td>
+                        <td><span class="health yellow">1</span></td>
+                        <td><span class="health yellow">2</span></td>
+                        <td><span class="health yellow">1</span></td>
+                        <td><span class="health yellow">1</span></td>
+                    </tr>
+                    <tr>
+                        <td>Scale</td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>Storage</td>
+                        <td><span class="health red">9</span></td>
+                        <td><span class="health red">9</span></td>
+                        <td><span class="health red">9</span></td>
+                        <td><span class="health red">8</span></td>
+                        <td><span class="health yellow">5</span></td>
+                    </tr>
+                    <tr>
+                        <td>Virt</td>
+                        <td><span class="health yellow">1</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                        <td><span class="health green">0</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="note">
+                Shows quarantined test count per team for each repository and branch/version.
+                "-" indicates the team does not exist in that repository/version.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Quarantined Tests Details</h2>
+
+            <div class="tabs">
+            <button class="tab-btn active" data-tab="repo1-main">main (21)</button>
+            <button class="tab-btn" data-tab="repo1-cnv-4-21">cnv-4.21 (18)</button>
+            <button class="tab-btn" data-tab="repo1-cnv-4-20">cnv-4.20 (21)</button>
+            <button class="tab-btn" data-tab="repo1-cnv-4-19">cnv-4.19 (18)</button>
+            <button class="tab-btn" data-tab="repo1-cnv-4-18">cnv-4.18 (11)</button>
+            </div>
+
+            <div class="tab-content active" id="repo1-main">
+                <div class="team-header">Chaos (2 tests)</div>
+                <div class="test-item">
+                    <code>test_migration_reboot_source_node</code> <a href="https://issues.redhat.com/browse/CNV-62939" target="_blank">[CNV-62939]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:259</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62939</span>
+                </div>
+                <div class="test-item">
+                    <code>test_migration_reboot_target_node</code> <a href="https://issues.redhat.com/browse/CNV-62949" target="_blank">[CNV-62949]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:284</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62949</span>
+                </div>
+                <div class="team-header">Install Upgrade Operators (3 tests)</div>
+                <div class="test-item">
+                    <code>test_certificate_renewed_in_hco</code> <a href="https://issues.redhat.com/browse/CNV-49628" target="_blank">[CNV-49628]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/cert_renewal/test_cert_renewal.py:36</div><br><span class="meta">Reason: certificate order is messed up sometimes, causing flakiness. tracked in CNV-49628</span>
+                </div>
+                <div class="test-item">
+                    <code>test_compare_csv_permissions</code> <a href="https://issues.redhat.com/browse/CNV-72139" target="_blank">[CNV-72139]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/csv/csv_permissions_audit/test_csv_permissions_audit.py:101</div><br><span class="meta">Reason: Should be tested in tier1; tracked in CNV-72139</span>
+                </div>
+                <div class="test-item">
+                    <code>test_enable_fg_hco</code> <a href="https://issues.redhat.com/browse/CNV-79304" target="_blank">[CNV-79304]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/feature_gates/test_update_featuregate_hco.py:51</div><br><span class="meta">Reason: HCO feature gate being replaced with different spec; Tracked in CNV-79304</span>
+                </div>
+                <div class="team-header">Network (5 tests)</div>
+                <div class="test-item">
+                    <code>test_connectivity_is_preserved_during_server_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-72782" target="_blank">[CNV-72782]</a>
+                    <div class="meta">File: tests/network/user_defined_network/test_user_defined_network.py:121</div><br><span class="meta">Reason: Failed migration of vm in UDN: CNV-72782</span>
+                </div>
+                <div class="test-item">
+                    <code>test_multiple_interfaces_hot_plugged</code> <a href="https://issues.redhat.com/browse/CNV-76670" target="_blank">[CNV-76670]</a>
+                    <div class="meta">File: tests/network/l2_bridge/test_bridge_nic_hot_plug.py:467</div><br><span class="meta">Reason: Failing due to hot plugging too many interfaces to the VM. Tracked in CNV-76670</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_basic_connectivity_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:52</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_no_connectivity_no_vlan_to_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:71</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_vmi_reports_ip_on_secondary_interface_without_vlan</code> <a href="https://issues.redhat.com/browse/CNV-80582" target="_blank">[CNV-80582]</a>
+                    <div class="meta">File: tests/network/localnet/test_default_bridge.py:68</div><br><span class="meta">Reason: The requested IPv6 address is assigned but not visible in VMI: CNV-80582</span>
+                </div>
+                <div class="team-header">Observability (1 test)</div>
+                <div class="test-item">
+                    <code>test_vm_starting_status_metrics</code> <a href="https://issues.redhat.com/browse/CNV-76518" target="_blank">[CNV-76518]</a>
+                    <div class="meta">File: tests/observability/metrics/test_vms_metrics.py:195</div><br><span class="meta">Reason: Storage Classes act differently when</span>
+                </div>
+                <div class="team-header">Storage (9 tests)</div>
+                <div class="test-item">
+                    <code>test_cert_exposure_rotation</code> <a href="https://issues.redhat.com/browse/CNV-18870" target="_blank">[CNV-18870]</a>
+                    <div class="meta">File: tests/storage/test_cdi_certificate.py:313</div><br><span class="meta">Reason: Test fails when running from container; tracked in CNV-18870</span>
+                </div>
+                <div class="test-item">
+                    <code>test_checkup_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:87</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_create_vm_with_cloned_data_volume_grant_unprivileged_client_permissions_negative</code> <a href="https://issues.redhat.com/browse/CNV-63482" target="_blank">[CNV-63482]</a>
+                    <div class="meta">File: tests/storage/restricted_namespace_cloning/test_restricted_namespace_cloning_vms.py:126</div><br><span class="meta">Reason: fails since 4.19; CNV-63482</span>
+                </div>
+                <div class="test-item">
+                    <code>test_invalid_url</code> <a href="https://issues.redhat.com/browse/CNV-73197" target="_blank">[CNV-73197]</a>
+                    <div class="meta">File: tests/storage/cdi_import/test_import_http.py:147</div><br><span class="meta">Reason: Automation bug after wait_for_condition change; tracked in CNV-73197</span>
+                </div>
+                <div class="test-item">
+                    <code>test_ocs_rbd_non_virt_vm_exist</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:70</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_overriden_storage_profile_claim_propertyset</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:37</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_storage_profile_missing_volume_snapshot_class</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:53</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_image_upload_with_ca</code> <a href="https://issues.redhat.com/browse/CNV-18870" target="_blank">[CNV-18870]</a>
+                    <div class="meta">File: tests/storage/cdi_upload/test_upload_virtctl.py:140</div><br><span class="meta">Reason: Test fails when running from container; tracked in CNV-18870</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_libguestfs_with_specific_user</code> <a href="https://issues.redhat.com/browse/CNV-62312" target="_blank">[CNV-62312]</a>
+                    <div class="meta">File: tests/storage/test_libguestfs.py:94</div><br><span class="meta">Reason: Timeout exceeded. Tracked in CNV-62312</span>
+                </div>
+                <div class="team-header">Virt (1 test)</div>
+                <div class="test-item">
+                    <code>test_vmi_guest_agent_info_after_guest_reboot</code> <a href="https://issues.redhat.com/browse/CNV-79605" target="_blank">[CNV-79605]</a>
+                    <div class="meta">File: tests/virt/cluster/common_templates/windows/test_windows_os_support.py:158</div><br><span class="meta">Reason: Intermittent failures due to timeout exceeded; tracked in CNV-79605</span>
+                </div>
+            </div>
+            <div class="tab-content" id="repo1-cnv-4-21" style="display:none;">
+                <div class="team-header">Chaos (2 tests)</div>
+                <div class="test-item">
+                    <code>test_migration_reboot_source_node</code> <a href="https://issues.redhat.com/browse/CNV-62939" target="_blank">[CNV-62939]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:259</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62939</span>
+                </div>
+                <div class="test-item">
+                    <code>test_migration_reboot_target_node</code> <a href="https://issues.redhat.com/browse/CNV-62949" target="_blank">[CNV-62949]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:284</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62949</span>
+                </div>
+                <div class="team-header">Install Upgrade Operators (2 tests)</div>
+                <div class="test-item">
+                    <code>test_certificate_renewed_in_hco</code> <a href="https://issues.redhat.com/browse/CNV-49628" target="_blank">[CNV-49628]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/cert_renewal/test_cert_renewal.py:36</div><br><span class="meta">Reason: certificate order is messed up sometimes, causing flakiness. tracked in CNV-49628</span>
+                </div>
+                <div class="test-item">
+                    <code>test_compare_csv_permissions</code> <a href="https://issues.redhat.com/browse/CNV-72139" target="_blank">[CNV-72139]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/csv/csv_permissions_audit/test_csv_permissions_audit.py:101</div><br><span class="meta">Reason: Should be tested in tier1; tracked in CNV-72139</span>
+                </div>
+                <div class="team-header">Network (4 tests)</div>
+                <div class="test-item">
+                    <code>test_connectivity_is_preserved_during_server_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-72782" target="_blank">[CNV-72782]</a>
+                    <div class="meta">File: tests/network/user_defined_network/test_user_defined_network.py:121</div><br><span class="meta">Reason: Failed migration of vm in UDN: CNV-72782</span>
+                </div>
+                <div class="test-item">
+                    <code>test_multiple_interfaces_hot_plugged</code> <a href="https://issues.redhat.com/browse/CNV-76670" target="_blank">[CNV-76670]</a>
+                    <div class="meta">File: tests/network/l2_bridge/test_bridge_nic_hot_plug.py:467</div><br><span class="meta">Reason: Failing due to hot plugging too many interfaces to the VM. Tracked in CNV-76670</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_basic_connectivity_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:56</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_no_connectivity_no_vlan_to_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:73</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="team-header">Observability (1 test)</div>
+                <div class="test-item">
+                    <code>test_vm_starting_status_metrics</code> <a href="https://issues.redhat.com/browse/CNV-76518" target="_blank">[CNV-76518]</a>
+                    <div class="meta">File: tests/observability/metrics/test_vms_metrics.py:192</div><br><span class="meta">Reason: Storage Classes act differently when</span>
+                </div>
+                <div class="team-header">Storage (9 tests)</div>
+                <div class="test-item">
+                    <code>test_cert_exposure_rotation</code> <a href="https://issues.redhat.com/browse/CNV-18870" target="_blank">[CNV-18870]</a>
+                    <div class="meta">File: tests/storage/test_cdi_certificate.py:313</div><br><span class="meta">Reason: Test fails when running from container; tracked in CNV-18870</span>
+                </div>
+                <div class="test-item">
+                    <code>test_checkup_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:87</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_create_vm_with_cloned_data_volume_grant_unprivileged_client_permissions_negative</code> <a href="https://issues.redhat.com/browse/CNV-63482" target="_blank">[CNV-63482]</a>
+                    <div class="meta">File: tests/storage/restricted_namespace_cloning/test_restricted_namespace_cloning_vms.py:126</div><br><span class="meta">Reason: fails since 4.19; CNV-63482</span>
+                </div>
+                <div class="test-item">
+                    <code>test_invalid_url</code> <a href="https://issues.redhat.com/browse/CNV-73197" target="_blank">[CNV-73197]</a>
+                    <div class="meta">File: tests/storage/cdi_import/test_import_http.py:147</div><br><span class="meta">Reason: Automation bug after wait_for_condition change; tracked in CNV-73197</span>
+                </div>
+                <div class="test-item">
+                    <code>test_ocs_rbd_non_virt_vm_exist</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:70</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_overriden_storage_profile_claim_propertyset</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:37</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_storage_profile_missing_volume_snapshot_class</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:53</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_image_upload_with_ca</code> <a href="https://issues.redhat.com/browse/CNV-18870" target="_blank">[CNV-18870]</a>
+                    <div class="meta">File: tests/storage/cdi_upload/test_upload_virtctl.py:139</div><br><span class="meta">Reason: Test fails when running from container; tracked in CNV-18870</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_libguestfs_with_specific_user</code> <a href="https://issues.redhat.com/browse/CNV-62312" target="_blank">[CNV-62312]</a>
+                    <div class="meta">File: tests/storage/test_libguestfs.py:94</div><br><span class="meta">Reason: Timeout exceeded. Tracked in CNV-62312</span>
+                </div>
+            </div>
+            <div class="tab-content" id="repo1-cnv-4-20" style="display:none;">
+                <div class="team-header">Chaos (2 tests)</div>
+                <div class="test-item">
+                    <code>test_migration_reboot_source_node</code> <a href="https://issues.redhat.com/browse/CNV-62939" target="_blank">[CNV-62939]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:259</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62939</span>
+                </div>
+                <div class="test-item">
+                    <code>test_migration_reboot_target_node</code> <a href="https://issues.redhat.com/browse/CNV-62949" target="_blank">[CNV-62949]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:284</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62949</span>
+                </div>
+                <div class="team-header">Infrastructure (1 test)</div>
+                <div class="test-item">
+                    <code>test_vm_from_data_source_missing_default_storage_class</code> <a href="https://issues.redhat.com/browse/CNV-68779" target="_blank">[CNV-68779]</a>
+                    <div class="meta">File: tests/infrastructure/golden_images/test_common_templates_data_volumes.py:165</div><br><span class="meta">Reason: VM is going into running state which it shouldn</span>
+                </div>
+                <div class="team-header">Install Upgrade Operators (2 tests)</div>
+                <div class="test-item">
+                    <code>test_certificate_renewed_in_hco</code> <a href="https://issues.redhat.com/browse/CNV-49628" target="_blank">[CNV-49628]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/cert_renewal/test_cert_renewal.py:36</div><br><span class="meta">Reason: certificate order is messed up sometimes, causing flakiness. tracked in CNV-49628</span>
+                </div>
+                <div class="test-item">
+                    <code>test_compare_csv_permissions</code> <a href="https://issues.redhat.com/browse/CNV-72139" target="_blank">[CNV-72139]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/csv/csv_permissions_audit/test_csv_permissions_audit.py:83</div><br><span class="meta">Reason: Should be tested in tier1; tracked in CNV-72139</span>
+                </div>
+                <div class="team-header">Network (5 tests)</div>
+                <div class="test-item">
+                    <code>test_connectivity_is_preserved_during_server_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-72782" target="_blank">[CNV-72782]</a>
+                    <div class="meta">File: tests/network/user_defined_network/test_user_defined_network.py:152</div><br><span class="meta">Reason: Failed migration of vm in UDN: CNV-72782</span>
+                </div>
+                <div class="test-item">
+                    <code>test_multiple_interfaces_hot_plugged</code> <a href="https://issues.redhat.com/browse/CNV-76670" target="_blank">[CNV-76670]</a>
+                    <div class="meta">File: tests/network/l2_bridge/test_bridge_nic_hot_plug.py:458</div><br><span class="meta">Reason: Failing due to hot plugging too many interfaces to the VM. Tracked in CNV-76670</span>
+                </div>
+                <div class="test-item">
+                    <code>test_rdp_for_exposed_win_vm_as_node_port_svc</code> <a href="https://issues.redhat.com/browse/CNV-43997" target="_blank">[CNV-43997]</a>
+                    <div class="meta">File: tests/network/rdp/test_rdp_for_exposed_vm_svc.py:87</div><br><span class="meta">Reason: RDP test case must be fixed and implement a reliable client; tracked in CNV-43997</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_basic_connectivity_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:55</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_no_connectivity_no_vlan_to_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:72</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="team-header">Observability (2 tests)</div>
+                <div class="test-item">
+                    <code>test_runbook_downstream_urls</code> <a href="https://issues.redhat.com/browse/CNV-67890" target="_blank">[CNV-67890]</a>
+                    <div class="meta">File: tests/observability/runbook_url/test_runbook_url.py:27</div><br><span class="meta">Reason: New alerts runbooks added to upstream and not merged yet for downstream, CNV-67890</span>
+                </div>
+                <div class="test-item">
+                    <code>test_vm_starting_status_metrics</code> <a href="https://issues.redhat.com/browse/CNV-76518" target="_blank">[CNV-76518]</a>
+                    <div class="meta">File: tests/observability/metrics/test_vms_metrics.py:189</div><br><span class="meta">Reason: Storage Classes act differently when</span>
+                </div>
+                <div class="team-header">Storage (9 tests)</div>
+                <div class="test-item">
+                    <code>test_checkup_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:87</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_create_vm_with_cloned_data_volume_grant_unprivileged_client_permissions_negative</code> <a href="https://issues.redhat.com/browse/CNV-63482" target="_blank">[CNV-63482]</a>
+                    <div class="meta">File: tests/storage/restricted_namespace_cloning/test_restricted_namespace_cloning_vms.py:122</div><br><span class="meta">Reason: fails since 4.19; CNV-63482</span>
+                </div>
+                <div class="test-item">
+                    <code>test_migrate_windows_vm_with_vtpm_after_storage_migration</code> <a href="https://issues.redhat.com/browse/CNV-73198" target="_blank">[CNV-73198]</a>
+                    <div class="meta">File: tests/storage/storage_migration/test_mtc_storage_class_migration.py:323</div><br><span class="meta">Reason: Windows VM not deleted on time in Teardown. CNV-73198</span>
+                </div>
+                <div class="test-item">
+                    <code>test_ocs_rbd_non_virt_vm_exist</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:70</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_overriden_storage_profile_claim_propertyset</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:37</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_storage_profile_missing_volume_snapshot_class</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:53</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_successful_import_secure_image</code> <a href="https://issues.redhat.com/browse/CNV-70094" target="_blank">[CNV-70094]</a>
+                    <div class="meta">File: tests/storage/cdi_import/test_import_http.py:245</div><br><span class="meta">Reason: regression, timeout failure; CNV-70094</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_libguestfs_with_specific_user</code> <a href="https://issues.redhat.com/browse/CNV-62312" target="_blank">[CNV-62312]</a>
+                    <div class="meta">File: tests/storage/test_libguestfs.py:94</div><br><span class="meta">Reason: the test is not stable; tracked in CNV-62312</span>
+                </div>
+                <div class="test-item">
+                    <code>test_vm_storage_class_migration_a_to_b_running_vms</code> <span style="color: var(--yellow);">No Jira ticket</span>
+                    <div class="meta">File: tests/storage/storage_migration/test_mtc_storage_class_migration.py:63</div><br><span class="meta">Reason: MigMigration resource reports Failed for VMs with RWO storage; MIG-1770</span>
+                </div>
+            </div>
+            <div class="tab-content" id="repo1-cnv-4-19" style="display:none;">
+                <div class="team-header">Chaos (2 tests)</div>
+                <div class="test-item">
+                    <code>test_migration_reboot_source_node</code> <a href="https://issues.redhat.com/browse/CNV-62939" target="_blank">[CNV-62939]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:254</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62939</span>
+                </div>
+                <div class="test-item">
+                    <code>test_migration_reboot_target_node</code> <a href="https://issues.redhat.com/browse/CNV-62949" target="_blank">[CNV-62949]</a>
+                    <div class="meta">File: tests/chaos/migration/test_migration.py:279</div><br><span class="meta">Reason: Failed on teardown with kubernetes.client.exceptions.ApiException. Tracked in CNV-62949</span>
+                </div>
+                <div class="team-header">Infrastructure (2 tests)</div>
+                <div class="test-item">
+                    <code>test_cx1_instancetype_profile</code> <a href="https://issues.redhat.com/browse/CNV-61589" target="_blank">[CNV-61589]</a>
+                    <div class="meta">File: tests/infrastructure/instance_types/test_common_vm_instancetype.py:34</div><br><span class="meta">Reason: the test need fixes; tracked in CNV-61589</span>
+                </div>
+                <div class="test-item">
+                    <code>test_vm_from_golden_image_missing_default_storage_class</code> <a href="https://issues.redhat.com/browse/CNV-68779" target="_blank">[CNV-68779]</a>
+                    <div class="meta">File: tests/infrastructure/golden_images/test_common_templates_data_volumes.py:153</div><br><span class="meta">Reason: VM is going into running state which it shouldn</span>
+                </div>
+                <div class="team-header">Install Upgrade Operators (2 tests)</div>
+                <div class="test-item">
+                    <code>test_certificate_renewed_in_hco</code> <a href="https://issues.redhat.com/browse/CNV-49628" target="_blank">[CNV-49628]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/cert_renewal/test_cert_renewal.py:36</div><br><span class="meta">Reason: certificate order is messed up sometimes, causing flakiness. tracked in CNV-49628</span>
+                </div>
+                <div class="test-item">
+                    <code>test_compare_csv_permissions</code> <a href="https://issues.redhat.com/browse/CNV-72139" target="_blank">[CNV-72139]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/csv/csv_permissions_audit/test_csv_permissions_audit.py:81</div><br><span class="meta">Reason: Should be tested in tier1; tracked in CNV-72139</span>
+                </div>
+                <div class="team-header">Network (3 tests)</div>
+                <div class="test-item">
+                    <code>test_rdp_for_exposed_win_vm_as_node_port_svc</code> <a href="https://issues.redhat.com/browse/CNV-43997" target="_blank">[CNV-43997]</a>
+                    <div class="meta">File: tests/network/rdp/test_rdp_for_exposed_vm_svc.py:87</div><br><span class="meta">Reason: RDP test case must be fixed and implement a reliable client; tracked in CNV-43997</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_basic_connectivity_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:55</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_no_connectivity_no_vlan_to_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:72</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="team-header">Observability (1 test)</div>
+                <div class="test-item">
+                    <code>test_runbook_downstream_urls</code> <a href="https://issues.redhat.com/browse/CNV-67890" target="_blank">[CNV-67890]</a>
+                    <div class="meta">File: tests/observability/runbook_url/test_runbook_url.py:27</div><br><span class="meta">Reason: New alerts runbooks added to upstream and not merged yet for downstream, CNV-67890</span>
+                </div>
+                <div class="team-header">Storage (8 tests)</div>
+                <div class="test-item">
+                    <code>test_checkup_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:86</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_create_vm_with_cloned_data_volume_grant_unprivileged_client_permissions_negative</code> <a href="https://issues.redhat.com/browse/CNV-63482" target="_blank">[CNV-63482]</a>
+                    <div class="meta">File: tests/storage/restricted_namespace_cloning/test_restricted_namespace_cloning_vms.py:119</div><br><span class="meta">Reason: fails since 4.19; CNV-63482</span>
+                </div>
+                <div class="test-item">
+                    <code>test_disk_image_after_clone</code> <a href="https://issues.redhat.com/browse/CNV-66721" target="_blank">[CNV-66721]</a>
+                    <div class="meta">File: tests/storage/cdi_clone/test_clone.py:215</div><br><span class="meta">Reason: consistently failing test. Timeout into ssh connection to the vm; CNV-66721</span>
+                </div>
+                <div class="test-item">
+                    <code>test_ocs_rbd_non_virt_vm_exist</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:69</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_overriden_storage_profile_claim_propertyset</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:36</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_storage_profile_missing_volume_snapshot_class</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:52</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_successful_import_secure_image</code> <a href="https://issues.redhat.com/browse/CNV-70094" target="_blank">[CNV-70094]</a>
+                    <div class="meta">File: tests/storage/cdi_import/test_import_http.py:240</div><br><span class="meta">Reason: regression, timeout failure; CNV-70094</span>
+                </div>
+                <div class="test-item">
+                    <code>test_virtctl_libguestfs_with_specific_user</code> <a href="https://issues.redhat.com/browse/CNV-62312" target="_blank">[CNV-62312]</a>
+                    <div class="meta">File: tests/storage/test_libguestfs.py:93</div><br><span class="meta">Reason: the test is not stable; tracked in CNV-62312</span>
+                </div>
+            </div>
+            <div class="tab-content" id="repo1-cnv-4-18" style="display:none;">
+                <div class="team-header">Install Upgrade Operators (2 tests)</div>
+                <div class="test-item">
+                    <code>test_certificate_renewed_in_hco</code> <a href="https://issues.redhat.com/browse/CNV-49628" target="_blank">[CNV-49628]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/cert_renewal/test_cert_renewal.py:36</div><br><span class="meta">Reason: certificate order is messed up sometimes, causing flakiness. tracked in CNV-49628</span>
+                </div>
+                <div class="test-item">
+                    <code>test_compare_csv_permissions</code> <a href="https://issues.redhat.com/browse/CNV-72139" target="_blank">[CNV-72139]</a>
+                    <div class="meta">File: tests/install_upgrade_operators/csv/csv_permissions_audit/test_csv_permissions_audit.py:81</div><br><span class="meta">Reason: Should be tested in tier1; tracked in CNV-72139</span>
+                </div>
+                <div class="team-header">Network (3 tests)</div>
+                <div class="test-item">
+                    <code>test_rdp_for_exposed_win_vm_as_node_port_svc</code> <a href="https://issues.redhat.com/browse/CNV-43997" target="_blank">[CNV-43997]</a>
+                    <div class="meta">File: tests/network/rdp/test_rdp_for_exposed_vm_svc.py:87</div><br><span class="meta">Reason: RDP test case must be fixed and implement a reliable client; tracked in CNV-43997</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_basic_connectivity_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:55</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_sriov_no_connectivity_no_vlan_to_vlan</code> <a href="https://issues.redhat.com/browse/CNV-75730" target="_blank">[CNV-75730]</a>
+                    <div class="meta">File: tests/network/sriov/test_sriov.py:72</div><br><span class="meta">Reason: fails in CI due to issue in specific cluster; tracked in CNV-75730</span>
+                </div>
+                <div class="team-header">Observability (1 test)</div>
+                <div class="test-item">
+                    <code>test_runbook_downstream_urls</code> <a href="https://issues.redhat.com/browse/CNV-67890" target="_blank">[CNV-67890]</a>
+                    <div class="meta">File: tests/observability/runbook_url/test_runbook_url.py:27</div><br><span class="meta">Reason: New alerts runbooks added to upstream and not merged yet for downstream, CNV-67890</span>
+                </div>
+                <div class="team-header">Storage (5 tests)</div>
+                <div class="test-item">
+                    <code>test_checkup_live_migration</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:86</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_ocs_rbd_non_virt_vm_exist</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:69</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_overriden_storage_profile_claim_propertyset</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:36</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_storage_profile_missing_volume_snapshot_class</code> <a href="https://issues.redhat.com/browse/CNV-67730" target="_blank">[CNV-67730]</a>
+                    <div class="meta">File: tests/storage/checkups/test_checkups.py:52</div><br><span class="meta">Reason: default storage class is not set properly: CNV-67730</span>
+                </div>
+                <div class="test-item">
+                    <code>test_successful_import_image</code> <a href="https://issues.redhat.com/browse/CNV-73536" target="_blank">[CNV-73536]</a>
+                    <div class="meta">File: tests/storage/cdi_import/test_import_http.py:184</div><br><span class="meta">Reason: PVC missing/not found during operation. CNV-73536</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Last updated: 2026-04-27 14:32:41 UTC<br>
+            Generated by generate_dashboard.py
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+                const section = btn.closest('.section');
+
+                // Deactivate all tabs in this section
+                section.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                section.querySelectorAll('.tab-content').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
+                });
+
+                // Activate clicked tab
+                btn.classList.add('active');
+                const content = section.querySelector('#' + tabId);
+                content.classList.add('active');
+                content.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -38,7 +38,7 @@ jobs:
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Upload dashboard as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: quarantine-dashboard-${{ steps.timestamp.outputs.date }}
           path: output/dashboard.html
@@ -55,5 +55,6 @@ jobs:
 
       - name: Comment on workflow run
         run: |
-          echo "✅ Dashboard generated successfully!"
-          echo "📊 View at: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/reports/dashboard.html"
+          echo "## ✅ Dashboard Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **[View Dashboard](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/reports/dashboard.html)**" >> $GITHUB_STEP_SUMMARY

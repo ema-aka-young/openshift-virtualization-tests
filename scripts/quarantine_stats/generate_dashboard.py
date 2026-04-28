@@ -475,9 +475,9 @@ def clone_or_update_repo(repo: str, base_dir: Path, github_token: str | None = N
 
     # Clone new repo - use token if provided for private repos
     if github_token:
-        repo_url = f"https://{github_token}@github.com/{repo}.git"
+        repo_url = f"https://x-access-token:{github_token}@github.com/{repo}.git"
         # Log without exposing the token
-        LOGGER.info("Cloning: https://***@github.com/%s.git (with token)", repo)
+        LOGGER.info("Cloning: https://x-access-token:***@github.com/%s.git (with token)", repo)
     else:
         repo_url = f"https://github.com/{repo}.git"
         LOGGER.info("Cloning: %s", repo_url)

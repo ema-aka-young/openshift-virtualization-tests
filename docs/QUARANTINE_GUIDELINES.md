@@ -182,6 +182,40 @@ When submitting quarantine PR:
 
 **GitHub Label**: `quarantine` label will be added automatically
 
+## Quarantine Tracking and Reporting
+
+### Automated Quarantine Dashboard
+
+An automated quarantine dashboard is generated weekly to track quarantined tests across all versions and teams.
+
+**Viewing the Dashboard:**
+
+Live dashboard (updated weekly): **https://redhatqe.github.io/openshift-virtualization-tests/reports/dashboard.html**
+
+The dashboard includes:
+- **Version Summary**: Total, active, and quarantined test counts per version (main, cnv-4.21, cnv-4.20, etc.)
+- **Team Breakdown**: Quarantined tests organized by team across all versions
+- **Detailed Test List**: All quarantined tests with:
+  - Test name and file location
+  - Associated Jira ticket (if available)
+  - Quarantine reason
+  - Team/category
+
+**Automation:**
+
+The dashboard is automatically generated every **Monday at 8:00 UTC** via GitHub Actions workflow ([`.github/workflows/quarantine-dashboard.yml`](../.github/workflows/quarantine-dashboard.yml)) and published to GitHub Pages.
+
+**Manual Generation:**
+
+To generate the dashboard locally:
+
+```bash
+# Generate HTML dashboard
+uv run quarantine-dashboard
+# Generate JSON for analysis
+uv run quarantine-dashboard --json
+```
+
 
 ## De-Quarantine and Re-inclusion Process
 

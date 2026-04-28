@@ -133,3 +133,6 @@ docs/source/rst
 
 # For local run (debug).
 ocp_resources
+
+# Quarantine dashboard report
+scripts/quarantine_stats/dashboard.html

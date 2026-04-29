@@ -43,7 +43,6 @@ from ocp_resources.network_config_openshift_io import Network
 from ocp_resources.node import Node
 from ocp_resources.node_network_state import NodeNetworkState
 from ocp_resources.oauth import OAuth
-from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.pod import Pod
 from ocp_resources.resource import Resource, ResourceEditor, get_client
 from ocp_resources.role_binding import RoleBinding
@@ -1094,26 +1093,6 @@ def mac_pool(hco_namespace):
     return MacPool(
         kmp_range=ConfigMap(namespace=hco_namespace.name, name=KUBEMACPOOL_MAC_RANGE_CONFIG).instance["data"]
     )
-
-
-def _skip_access_mode_rwo(storage_class_matrix):
-    if storage_class_matrix[[*storage_class_matrix][0]]["access_mode"] == PersistentVolumeClaim.AccessMode.RWO:
-        pytest.skip(reason="Skipping when access_mode is RWO; possible reason: cannot migrate VMI with non-shared PVCs")
-
-
-@pytest.fixture()
-def skip_access_mode_rwo_scope_function(storage_class_matrix__function__):
-    _skip_access_mode_rwo(storage_class_matrix=storage_class_matrix__function__)
-
-
-@pytest.fixture(scope="class")
-def skip_access_mode_rwo_scope_class(storage_class_matrix__class__):
-    _skip_access_mode_rwo(storage_class_matrix=storage_class_matrix__class__)
-
-
-@pytest.fixture(scope="module")
-def skip_access_mode_rwo_scope_module(storage_class_matrix__module__):
-    _skip_access_mode_rwo(storage_class_matrix=storage_class_matrix__module__)
 
 
 @pytest.fixture(scope="session")

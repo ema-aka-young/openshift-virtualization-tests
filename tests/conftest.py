@@ -43,7 +43,6 @@ from ocp_resources.network_addons_config import NetworkAddonsConfig
 from ocp_resources.node import Node
 from ocp_resources.node_network_state import NodeNetworkState
 from ocp_resources.oauth import OAuth
-from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.pod import Pod
 from ocp_resources.resource import Resource, ResourceEditor, get_client
 from ocp_resources.role_binding import RoleBinding
@@ -1110,13 +1109,8 @@ def mac_pool(hco_namespace):
 
 
 def _skip_access_mode_rwo(storage_class_matrix):
-    if storage_class_matrix[[*storage_class_matrix][0]]["access_mode"] == PersistentVolumeClaim.AccessMode.RWO:
+    if storage_class_matrix[[*storage_class_matrix][0]]["access_mode"] == "ReadWriteOnce":
         pytest.skip(reason="Skipping when access_mode is RWO; possible reason: cannot migrate VMI with non-shared PVCs")
-
-
-@pytest.fixture()
-def skip_access_mode_rwo_scope_function(storage_class_matrix__function__):
-    _skip_access_mode_rwo(storage_class_matrix=storage_class_matrix__function__)
 
 
 @pytest.fixture(scope="class")

@@ -36,7 +36,7 @@ LOGGER = logging.getLogger(__name__)
         ),
     ],
 )
-def test_disk_image_not_conform_to_registy_disk(
+def test_disk_image_not_conform_to_registry_disk(
     admin_client, dv_name, url, namespace, storage_class_matrix__function__
 ):
     with create_dv(

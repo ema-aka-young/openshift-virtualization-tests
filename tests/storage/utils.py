@@ -12,7 +12,6 @@ from ocp_resources.config_map import ConfigMap
 from ocp_resources.daemonset import DaemonSet
 from ocp_resources.datavolume import DataVolume
 from ocp_resources.hostpath_provisioner import HostPathProvisioner
-from ocp_resources.pod import Pod
 from ocp_resources.resource import Resource
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
@@ -36,6 +35,7 @@ from utilities.constants import (
     CDI_UPLOADPROXY,
     LS_COMMAND,
     TIMEOUT_2MIN,
+    TIMEOUT_3MIN,
     TIMEOUT_5SEC,
     TIMEOUT_20SEC,
     TIMEOUT_30MIN,
@@ -282,13 +282,30 @@ def get_importer_pod(
 
 
 def wait_for_importer_container_message(importer_pod, msg):
+    """
+    Wait for importer pod to crash with expected error message.
+
+    Polls the pod's lastState.terminated.message for the expected error message
+    after at least one container restart. Does not require the pod to be in
+    CrashLoopBackOff status, as that is a transient waiting state that may be
+    missed during polling, especially in CI environments with slow container
+    initialization.
+
+    Args:
+        importer_pod: Pod object for the CDI importer pod
+        msg: Expected error message substring to find in terminated container message
+
+    Raises:
+        TimeoutExpiredError: If message not found within timeout, logs actual
+            message from importer pod's last container termination state for debugging.
+    """
     LOGGER.info(f"Wait for {importer_pod.name} container to show message: {msg}")
     try:
         sampled_msg = TimeoutSampler(
-            wait_timeout=120,
+            wait_timeout=TIMEOUT_3MIN,
             sleep=5,
             func=lambda: (
-                importer_container_status_reason(importer_pod) == Pod.Status.CRASH_LOOPBACK_OFF
+                importer_pod.instance.status.containerStatuses[0].restartCount > 0
                 and msg
                 in importer_pod.instance.status
                 .containerStatuses[0]
@@ -303,18 +320,6 @@ def wait_for_importer_container_message(importer_pod, msg):
     except TimeoutExpiredError:
         LOGGER.error(f"{importer_pod.name} did not get message: {msg}")
         raise
-
-
-def importer_container_status_reason(pod):
-    """
-    Get status for why importer pod container is waiting or terminated
-    (for container status running there is no 'reason' key)
-    """
-    container_state = pod.instance.status.containerStatuses[0].state
-    if container_state.waiting:
-        return container_state.waiting.reason
-    if container_state.terminated:
-        return container_state.terminated.reason
 
 
 def assert_pvc_snapshot_clone_annotation(pvc, storage_class):

@@ -827,6 +827,26 @@ def is_snapshot_supported_by_sc(sc_name, client):
     return False
 
 
+def volume_snapshot_class_for_sc(sc_name: str, client: DynamicClient) -> str:
+    """Find the VolumeSnapshotClass matching a StorageClass provisioner.
+
+    Args:
+        sc_name: Name of the StorageClass.
+        client: Kubernetes client.
+
+    Returns:
+        Name of the matching VolumeSnapshotClass.
+
+    Raises:
+        ValueError: If no matching VolumeSnapshotClass is found.
+    """
+    provisioner = StorageClass(client=client, name=sc_name).instance.get("provisioner")
+    for vsc in VolumeSnapshotClass.get(client=client):
+        if vsc.instance.get("driver") == provisioner:
+            return vsc.name
+    raise ValueError(f"No VolumeSnapshotClass found for StorageClass '{sc_name}' (provisioner: {provisioner})")
+
+
 def check_disk_count_in_vm(vm):
     LOGGER.info("Check disk count.")
     out = run_ssh_commands(

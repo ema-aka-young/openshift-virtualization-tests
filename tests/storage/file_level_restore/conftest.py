@@ -3,6 +3,7 @@ import shlex
 
 import pytest
 from ocp_resources.datavolume import DataVolume
+from ocp_resources.kubevirt import KubeVirt
 from ocp_resources.virtual_machine_cluster_instancetype import VirtualMachineClusterInstancetype
 from ocp_resources.virtual_machine_cluster_preference import VirtualMachineClusterPreference
 from ocp_resources.volume_snapshot import VolumeSnapshot
@@ -24,6 +25,7 @@ from utilities.constants import (
     TIMEOUT_5SEC,
     U1_SMALL,
 )
+from utilities.hco import ResourceEditorValidateHCOReconcile
 from utilities.storage import (
     add_dv_to_vm,
     data_volume_template_with_source_ref_dict,
@@ -37,10 +39,26 @@ LOGGER = logging.getLogger(__name__)
 
 TEST_FILE_PATH = "/var/tmp/test-restore.txt"
 TEST_FILE_CONTENT = "file-restore-test-content"
+DATA_DISK_DEVICE = "/dev/vdc"
+DATA_DISK_MOUNT_PATH = "/mnt/data"
+
+
+@pytest.fixture(scope="session")
+def enabled_declarative_hotplug_volumes(hyperconverged_resource_scope_session):
+    """Enable the declarativeHotplugVolumes feature gate on HyperConverged."""
+    with ResourceEditorValidateHCOReconcile(
+        patches={
+            hyperconverged_resource_scope_session: {"spec": {"featureGates": {"declarativeHotplugVolumes": True}}},
+        },
+        list_resource_reconcile=[KubeVirt],
+        wait_for_reconcile_post_update=True,
+    ):
+        yield
 
 
 @pytest.fixture(scope="session")
 def file_restore_operator():
+    """Installed file-restore operator, uninstalled on teardown."""
     install_file_restore_operator(install_yaml_path=FILE_RESTORE_OPERATOR_INSTALL_YAML)
     yield
     uninstall_file_restore_operator(install_yaml_path=FILE_RESTORE_OPERATOR_INSTALL_YAML)
@@ -48,6 +66,7 @@ def file_restore_operator():
 
 @pytest.fixture(scope="session")
 def file_restore_ssh_public_key(file_restore_operator, admin_client):
+    """SSH public key from the file-restore operator's ConfigMap."""
     return get_operator_ssh_public_key(admin_client=admin_client)
 
 
@@ -59,6 +78,7 @@ def file_restore_vm(
     snapshot_storage_class_name_scope_module,
     file_restore_ssh_public_key,
 ):
+    """Running RHEL10 VM configured with the filerestore user, SSH key, and helper script."""
     with VirtualMachineForTests(
         name="file-restore-test-vm",
         namespace=namespace.name,
@@ -88,6 +108,7 @@ def file_restore_vm(
 
 @pytest.fixture()
 def test_file_on_vm(file_restore_vm):
+    """Test file written to the VM's root filesystem. Yields (path, content)."""
     write_file_via_ssh(
         vm=file_restore_vm,
         filename=TEST_FILE_PATH,
@@ -100,6 +121,7 @@ def test_file_on_vm(file_restore_vm):
 def vm_disk_snapshot(
     file_restore_vm, test_file_on_vm, namespace, admin_client, snapshot_storage_class_name_scope_module
 ):
+    """VolumeSnapshot of the VM's root disk, taken while the VM is stopped."""
     file_restore_vm.stop(wait=True)
     pvc_name = vm_root_disk_pvc_name(vm=file_restore_vm)
     vsc_name = volume_snapshot_class_for_sc(
@@ -125,6 +147,7 @@ def vm_disk_snapshot(
 
 @pytest.fixture()
 def backup_pvc(vm_disk_snapshot, namespace):
+    """PVC created from the VM root disk VolumeSnapshot."""
     LOGGER.info(f"Creating DataVolume from VolumeSnapshot '{vm_disk_snapshot.name}'")
     with DataVolume(
         name="file-restore-backup-pvc",
@@ -137,12 +160,38 @@ def backup_pvc(vm_disk_snapshot, namespace):
         yield data_volume
 
 
-DATA_DISK_DEVICE = "/dev/vdc"
-DATA_DISK_MOUNT_PATH = "/mnt/data"
+@pytest.fixture()
+def deleted_test_file(file_restore_vm, vm_disk_snapshot, test_file_on_vm):
+    """Test file deleted from the running VM after snapshot. Yields (path, content)."""
+    test_file_path, test_file_content = test_file_on_vm
+    LOGGER.info(f"Deleting test file '{test_file_path}' from VM for automatic restore test")
+    run_ssh_commands(
+        host=file_restore_vm.ssh_exec,
+        commands=shlex.split(f"rm -f {test_file_path}"),
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+    yield test_file_path, test_file_content
+
+
+@pytest.fixture()
+def deleted_test_file_on_data_disk(file_restore_vm_with_data_disk, data_disk_snapshot, test_file_on_data_disk):
+    """Test file deleted from the data disk after snapshot. Yields (relative_path, content)."""
+    relative_path, test_file_content = test_file_on_data_disk
+    full_path = f"{DATA_DISK_MOUNT_PATH}{relative_path}"
+    LOGGER.info(f"Deleting test file '{full_path}' from data disk for automatic restore test")
+    run_ssh_commands(
+        host=file_restore_vm_with_data_disk.ssh_exec,
+        commands=shlex.split(f"rm -f {full_path}"),
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+    yield relative_path, test_file_content
 
 
 @pytest.fixture(scope="class")
 def blank_data_disk(admin_client, namespace, snapshot_storage_class_name_scope_module):
+    """Blank 5Gi DataVolume for use as a secondary data disk."""
     with DataVolume(
         name="file-restore-data-disk",
         namespace=namespace.name,
@@ -164,6 +213,7 @@ def file_restore_vm_with_data_disk(
     file_restore_ssh_public_key,
     blank_data_disk,
 ):
+    """Running RHEL10 VM with a hotplugged ext4 data disk mounted at /mnt/data."""
     with VirtualMachineForTests(
         name="file-restore-data-disk-vm",
         namespace=namespace.name,
@@ -207,6 +257,7 @@ def file_restore_vm_with_data_disk(
 
 @pytest.fixture()
 def test_file_on_data_disk(file_restore_vm_with_data_disk):
+    """Test file written to the data disk. Yields (relative_path, content)."""
     relative_path = "/test-restore.txt"
     write_file_via_ssh(
         vm=file_restore_vm_with_data_disk,
@@ -225,6 +276,7 @@ def data_disk_snapshot(
     admin_client,
     snapshot_storage_class_name_scope_module,
 ):
+    """VolumeSnapshot of the data disk PVC containing the test file."""
     vsc_name = volume_snapshot_class_for_sc(
         sc_name=snapshot_storage_class_name_scope_module,
         client=admin_client,

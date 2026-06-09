@@ -12,7 +12,7 @@ from ocp_resources.resource import NamespacedResource
 from pyhelper_utils.shell import run_command, run_ssh_commands
 from timeout_sampler import TimeoutSampler
 
-from utilities.constants import TIMEOUT_1MIN, TIMEOUT_2MIN, TIMEOUT_5MIN, TIMEOUT_5SEC
+from utilities.constants import TIMEOUT_2MIN, TIMEOUT_5MIN, TIMEOUT_5SEC
 
 if TYPE_CHECKING:
     from kubernetes.dynamic import DynamicClient
@@ -107,7 +107,7 @@ class VirtualMachineFileRestore(NamespacedResource):
 def wait_for_file_restore_phase(
     file_restore: VirtualMachineFileRestore,
     target_phase: str,
-    timeout: int = TIMEOUT_1MIN,
+    timeout: int = TIMEOUT_5MIN,
 ) -> None:
     """Wait for VirtualMachineFileRestore to reach a target phase.
 

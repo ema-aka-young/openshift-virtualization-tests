@@ -127,6 +127,7 @@ mkdir -p "$MOUNT_PATH"
 MOUNT_OPTS="ro"
 case "$FSTYPE" in
     ext3|ext4) MOUNT_OPTS="ro,noload" ;;
+    xfs) MOUNT_OPTS="ro,norecovery,nouuid" ;;
 esac
 echo "Mounting /dev/$DEVICE (fstype=$FSTYPE) with options: $MOUNT_OPTS"
 mount -o "$MOUNT_OPTS" "/dev/$DEVICE" "$MOUNT_PATH"

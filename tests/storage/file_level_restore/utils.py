@@ -29,6 +29,8 @@ FILE_RESTORE_OPERATOR_DEPLOYMENT_NAME = "vm-file-restore-operator"
 FILERESTORE_SCRIPT_PATH = str(_MANIFESTS_DIR / "filerestore.sh")
 FILE_RESTORE_OPERATOR_INSTALL_YAML = str(_MANIFESTS_DIR / "install.yaml")
 BACKUP_MOUNT_PREFIX = "/backup"
+_OPERATOR_REPO_RAW_URL = "https://raw.githubusercontent.com/kubevirt/vm-file-restore-operator/refs/heads/main"
+SETUP_SCRIPT_URL = f"{_OPERATOR_REPO_RAW_URL}/guest-helpers/linux/setup.sh"
 
 
 class VirtualMachineFileRestore(NamespacedResource):
@@ -196,54 +198,49 @@ def get_operator_ssh_public_key(admin_client: DynamicClient) -> str:
 def configure_vm_for_file_restore(
     vm: VirtualMachineForTests,
     ssh_public_key: str,
-    filerestore_script_path: str,
+    filerestore_script_path: str | None = None,
 ) -> None:
     """Configure a VM for file-restore operator operations.
 
-    Creates the filerestore user, installs the SSH key, copies the helper
-    script, and configures passwordless sudo.
+    Downloads and runs the upstream setup.sh from the vm-file-restore-operator
+    GitHub repository. The setup script creates the filerestore user, installs
+    the SSH key with command restriction, configures sudoers, and downloads
+    the filerestore.sh helper script.
+
+    Optionally overwrites the helper script with a local version containing
+    fixes not yet merged upstream.
 
     Args:
         vm: The running VM to configure.
         ssh_public_key: The operator's SSH public key to install.
-        filerestore_script_path: Local path to the filerestore.sh script.
+        filerestore_script_path: Optional local path to filerestore.sh to
+            override the version downloaded by setup.sh.
     """
-    LOGGER.info(f"Configuring VM '{vm.name}' for file-restore operator")
-
-    setup_commands = [
-        "sudo useradd -m -s /bin/bash -G wheel filerestore || true",
-        "sudo mkdir -p /home/filerestore/.ssh",
-        "sudo chmod 700 /home/filerestore/.ssh",
-        f"sudo bash -c 'echo \"{ssh_public_key}\" > /home/filerestore/.ssh/authorized_keys'",
-        "sudo chmod 600 /home/filerestore/.ssh/authorized_keys",
-        "sudo chown -R filerestore:filerestore /home/filerestore/.ssh",
-        'sudo bash -c \'echo "filerestore ALL=(ALL) NOPASSWD: /usr/local/bin/filerestore.sh"'
-        " > /etc/sudoers.d/filerestore'",
-        "sudo chmod 440 /etc/sudoers.d/filerestore",
-    ]
-
-    for command in setup_commands:
-        run_ssh_commands(
-            host=vm.ssh_exec,
-            commands=shlex.split(command),
-            wait_timeout=TIMEOUT_2MIN,
-            sleep=TIMEOUT_5SEC,
-        )
-
-    with open(filerestore_script_path) as script_file:
-        script_content = script_file.read()
-
-    encoded_script = base64.b64encode(script_content.encode()).decode()
-    install_script_command = (
-        f"sudo bash -c 'echo {encoded_script} | base64 -d"
-        f" > /usr/local/bin/filerestore.sh && chmod +x /usr/local/bin/filerestore.sh'"
-    )
+    LOGGER.info(f"Configuring VM '{vm.name}' via upstream setup.sh")
+    setup_command = f"sudo bash -c 'curl -sL {SETUP_SCRIPT_URL} | bash -s -- \"{ssh_public_key}\"'"
     run_ssh_commands(
         host=vm.ssh_exec,
-        commands=shlex.split(install_script_command),
+        commands=shlex.split(setup_command),
         wait_timeout=TIMEOUT_2MIN,
         sleep=TIMEOUT_5SEC,
     )
+
+    if filerestore_script_path:
+        LOGGER.info(f"Overriding filerestore.sh with local version from {filerestore_script_path}")
+        with open(filerestore_script_path) as script_file:
+            script_content = script_file.read()
+
+        encoded_script = base64.b64encode(script_content.encode()).decode()
+        install_script_command = (
+            f"sudo bash -c 'echo {encoded_script} | base64 -d"
+            f" > /usr/local/bin/filerestore.sh && chmod +x /usr/local/bin/filerestore.sh'"
+        )
+        run_ssh_commands(
+            host=vm.ssh_exec,
+            commands=shlex.split(install_script_command),
+            wait_timeout=TIMEOUT_2MIN,
+            sleep=TIMEOUT_5SEC,
+        )
 
     LOGGER.info(f"VM '{vm.name}' configured for file-restore operator")
 

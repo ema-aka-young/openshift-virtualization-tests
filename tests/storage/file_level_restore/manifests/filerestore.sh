@@ -28,19 +28,17 @@ set -e
 log() { echo "[filerestore] $*"; }
 log_err() { echo "[filerestore] ERROR: $*" >&2; }
 
-# SSH command restriction support:
-# The setup.sh script installs the operator's SSH key with a command= prefix in
-# authorized_keys (e.g. command="/usr/local/bin/filerestore.sh" ssh-ed25519 ...).
-# This is a security measure that restricts the key to only run this script.
-# When command= is set, SSH ignores the client's requested command and runs the
-# forced command with no arguments. The client's original command (e.g.
-# "/usr/local/bin/filerestore.sh restore --serial XXX --mount-path /backup-snap")
-# is available in the SSH_ORIGINAL_COMMAND environment variable.
-# We detect this situation ($# == 0 but SSH_ORIGINAL_COMMAND is set), strip the
-# script path (first word), and use the remaining words as positional arguments.
-if [ $# -eq 0 ] && [ -n "$SSH_ORIGINAL_COMMAND" ]; then
-    read -ra _args <<< "$SSH_ORIGINAL_COMMAND"
-    set -- "${_args[@]:1}"
+# When invoked via SSH with command= restriction, validate and extract arguments
+if [ -n "$SSH_ORIGINAL_COMMAND" ]; then
+    # Verify command starts with allowed script path
+    if [[ ! "$SSH_ORIGINAL_COMMAND" =~ ^/usr/local/bin/filerestore\.sh ]]; then
+        echo "ERROR: Only filerestore.sh commands are allowed" >&2
+        exit 1
+    fi
+    # Extract arguments from SSH_ORIGINAL_COMMAND and re-execute
+    # Use eval to properly parse the command line into arguments
+    eval "set -- ${SSH_ORIGINAL_COMMAND#/usr/local/bin/filerestore.sh}"
+    unset SSH_ORIGINAL_COMMAND  # Clear to prevent loops
 fi
 
 # Re-execute with sudo if not running as root (mount/umount require root)

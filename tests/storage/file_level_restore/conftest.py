@@ -101,7 +101,6 @@ def file_restore_vm(
         configure_vm_for_file_restore(
             vm=vm,
             ssh_public_key=file_restore_ssh_public_key,
-            filerestore_script_path=FILERESTORE_SCRIPT_PATH,
         )
         yield vm
 
@@ -237,7 +236,6 @@ def file_restore_vm_with_data_disk(
         configure_vm_for_file_restore(
             vm=vm,
             ssh_public_key=file_restore_ssh_public_key,
-            filerestore_script_path=FILERESTORE_SCRIPT_PATH,
         )
         LOGGER.info(f"Formatting and mounting data disk at {DATA_DISK_MOUNT_PATH}")
         for cmd in [

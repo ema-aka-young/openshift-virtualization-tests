@@ -23,7 +23,7 @@
 #   5 - Source path not found on backup volume
 #   6 - File copy/restore failed
 
-set -e
+set -eo pipefail
 
 log() { echo "[filerestore] $*"; }
 log_err() { echo "[filerestore] ERROR: $*" >&2; }
@@ -31,13 +31,14 @@ log_err() { echo "[filerestore] ERROR: $*" >&2; }
 # When invoked via SSH with command= restriction, validate and extract arguments
 if [ -n "$SSH_ORIGINAL_COMMAND" ]; then
     # Verify command starts with allowed script path
-    if [[ ! "$SSH_ORIGINAL_COMMAND" =~ ^/usr/local/bin/filerestore\.sh ]]; then
+    if [[ ! "$SSH_ORIGINAL_COMMAND" =~ ^/usr/local/bin/filerestore\.sh($|[[:space:]]) ]]; then
         echo "ERROR: Only filerestore.sh commands are allowed" >&2
         exit 1
     fi
-    # Extract arguments from SSH_ORIGINAL_COMMAND and re-execute
-    # Use eval to properly parse the command line into arguments
-    eval "set -- ${SSH_ORIGINAL_COMMAND#/usr/local/bin/filerestore.sh}"
+    # Extract arguments from SSH_ORIGINAL_COMMAND
+    # Split remaining arguments on whitespace (no eval — avoids shell injection)
+    read -ra _args <<< "${SSH_ORIGINAL_COMMAND#/usr/local/bin/filerestore.sh}" || true
+    set -- "${_args[@]}"
     unset SSH_ORIGINAL_COMMAND  # Clear to prevent loops
 fi
 
@@ -59,8 +60,11 @@ usage() {
 unmount_and_cleanup() {
     local mnt="$1"
     sync
-    umount "$mnt" 2>/dev/null || umount -l "$mnt" 2>/dev/null || true
-    for i in 1 2 3; do
+    if ! umount "$mnt" 2>/dev/null; then
+        log "WARNING: Regular unmount of $mnt failed, attempting lazy unmount"
+        umount -l "$mnt" 2>/dev/null || log "WARNING: Lazy unmount of $mnt also failed"
+    fi
+    for _ in 1 2 3; do
         rm -rf "$mnt" 2>/dev/null && return 0
         sleep 1
     done
@@ -122,7 +126,7 @@ if [ -z "$SERIAL" ]; then
 fi
 
 # --- Find the device by serial number ---
-DEVICE=$(lsblk -o NAME,SERIAL -n | grep "$SERIAL" | awk '{print $1}')
+DEVICE=$(lsblk -o NAME,SERIAL -n | awk -v serial="$SERIAL" '$2 == serial {print $1; exit}')
 if [ -z "$DEVICE" ]; then
     log_err "Device with serial $SERIAL not found"
     exit 2
@@ -138,6 +142,10 @@ if [ -z "$FSTYPE" ]; then
         log "Device is partitioned, using partition: /dev/$PART"
         DEVICE="$PART"
         FSTYPE=$(blkid -o value -s TYPE "/dev/$DEVICE" 2>/dev/null || true)
+        if [ -z "$FSTYPE" ]; then
+            log_err "Could not determine filesystem type for partition /dev/$DEVICE"
+            exit 3
+        fi
     else
         log_err "No mountable filesystem found on /dev/$DEVICE or its partitions"
         exit 3
@@ -151,7 +159,7 @@ mkdir -p "$MOUNT_PATH"
 #   ext3/ext4: noload — skips journal replay, which requires write access and
 #              would fail on a read-only mount of a snapshot with a dirty journal.
 #   xfs:       norecovery — same purpose as noload (skips log replay). Without it,
-#              XFS refuses to mount read-only if the journal is dirty (exit code 32).
+#              XFS refuses to mount read-only if the log is dirty (exit code 32).
 #              nouuid — allows mounting a snapshot whose UUID matches the already-
 #              mounted original disk. XFS rejects duplicate UUIDs by default.
 MOUNT_OPTS="ro"

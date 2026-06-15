@@ -165,7 +165,6 @@ class TestVeleroBackupHookOptOut:
     Preconditions:
         - OADP operator installed and configured
         - Velero configured with default backup storage location
-        - VM with opt-out annotation deployed and running
     """
 
     __test__ = False
@@ -182,9 +181,11 @@ class TestVeleroBackupHookOptOut:
         Steps:
             1. Run Velero backup targeting the VM namespace
             2. Wait for backup completion
+            3. Check Velero backup logs for hook execution entries
 
         Expected:
-            - Backup completes successfully without freeze/unfreeze hook execution
+            - Backup completes successfully
+            - Backup logs do not contain freeze/unfreeze hook entries
         """
 
     @pytest.mark.polarion("CNV-16268")
@@ -193,7 +194,7 @@ class TestVeleroBackupHookOptOut:
         Test that full Velero backup and restore completes with hooks disabled.
 
         Preconditions:
-            - VM deployed with kubevirt.io/skip-backup-hooks: "true"
+            - Running VM deployed with kubevirt.io/skip-backup-hooks: "true"
             - Test data written to VM disk
 
         Steps:
@@ -203,7 +204,8 @@ class TestVeleroBackupHookOptOut:
             4. Wait for VM to reach Running state
 
         Expected:
-            - VM is restored in Running state with test data intact
+            - VM is Running
+            - File content equals the pre-backup test data
         """
 
     @pytest.mark.polarion("CNV-16269")
@@ -218,7 +220,9 @@ class TestVeleroBackupHookOptOut:
         Steps:
             1. Run Velero backup targeting the VM namespace
             2. Wait for backup completion
+            3. Check Velero backup logs for hook execution entries
 
         Expected:
-            - Backup completes with freeze/unfreeze hooks attempted
+            - Backup completes successfully
+            - Backup logs contain freeze/unfreeze hook entries
         """

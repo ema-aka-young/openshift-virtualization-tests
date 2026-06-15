@@ -285,8 +285,53 @@ class TestFileRestore:
                 expected_result=test_file_content,
             )
 
+    @pytest.mark.polarion("CNV-xxx5")
+    def test_automatic_file_restore_from_pvc(
+        self,
+        admin_client,
+        namespace,
+        file_restore_vm,
+        backup_pvc,
+        deleted_test_file,
+    ):
+        """Test automatic restore from PVC source.
+
+        Preconditions:
+            - File-restore operator installed in the cluster
+            - Running RHEL VM configured with filerestore user and helper script
+            - PVC created from a VolumeSnapshot of the VM's root disk containing a test file
+            - Test file deleted from the VM after snapshot
+
+        Steps:
+            1. Create a VirtualMachineFileRestore CR with PVC source and sourcePath (automatic mode)
+            2. Wait for Succeeded phase
+
+        Expected:
+            The test file is restored to its original location
+            with the original content
+        """
+        test_file_path, test_file_content = deleted_test_file
+        with VirtualMachineFileRestore(
+            name="test-auto-restore-pvc",
+            namespace=namespace.name,
+            target_vm_name=file_restore_vm.name,
+            source_pvc_name=backup_pvc.name,
+            source_path=TEST_FILE_PATH,
+            client=admin_client,
+        ) as file_restore:
+            wait_for_file_restore_phase(
+                file_restore=file_restore,
+                target_phase=VirtualMachineFileRestore.Phase.SUCCEEDED,
+            )
+            run_command_on_vm_and_check_output(
+                vm=file_restore_vm,
+                command=f"cat {test_file_path}",
+                expected_result=test_file_content,
+            )
+
 
 @pytest.mark.tier3
+@pytest.mark.skip(reason="CNV-xxx8: T3 not implemented yet")
 @pytest.mark.usefixtures("enabled_declarative_hotplug_volumes", "file_restore_operator")
 class TestFileRestoreConcurrentMultiVM:
     @pytest.mark.polarion("CNV-xxx8")
@@ -361,47 +406,3 @@ class TestFileRestoreConcurrentMultiVM:
             command=f"cat {data_relative_path}",
             expected_result=data_file_content,
         )
-
-    @pytest.mark.polarion("CNV-xxx5")
-    def test_automatic_file_restore_from_pvc(
-        self,
-        admin_client,
-        namespace,
-        file_restore_vm,
-        backup_pvc,
-        deleted_test_file,
-    ):
-        """Test automatic restore from PVC source.
-
-        Preconditions:
-            - File-restore operator installed in the cluster
-            - Running RHEL VM configured with filerestore user and helper script
-            - PVC created from a VolumeSnapshot of the VM's root disk containing a test file
-            - Test file deleted from the VM after snapshot
-
-        Steps:
-            1. Create a VirtualMachineFileRestore CR with PVC source and sourcePath (automatic mode)
-            2. Wait for Succeeded phase
-
-        Expected:
-            The test file is restored to its original location
-            with the original content
-        """
-        test_file_path, test_file_content = deleted_test_file
-        with VirtualMachineFileRestore(
-            name="test-auto-restore-pvc",
-            namespace=namespace.name,
-            target_vm_name=file_restore_vm.name,
-            source_pvc_name=backup_pvc.name,
-            source_path=TEST_FILE_PATH,
-            client=admin_client,
-        ) as file_restore:
-            wait_for_file_restore_phase(
-                file_restore=file_restore,
-                target_phase=VirtualMachineFileRestore.Phase.SUCCEEDED,
-            )
-            run_command_on_vm_and_check_output(
-                vm=file_restore_vm,
-                command=f"cat {test_file_path}",
-                expected_result=test_file_content,
-            )

@@ -8,6 +8,7 @@ from typing import Any, Self
 from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import ResourceNotFoundError
 from ocp_resources.backup import Backup
+from ocp_resources.data_source import DataSource
 from ocp_resources.datavolume import DataVolume
 from ocp_resources.exceptions import ResourceTeardownError
 from ocp_resources.restore import Restore
@@ -33,6 +34,7 @@ from utilities.infra import (
     get_pod_by_name_prefix,
     unique_name,
 )
+from utilities.storage import data_volume_template_with_source_ref_dict
 from utilities.virt import VirtualMachineForTests, running_vm
 
 LOGGER = logging.getLogger(__name__)
@@ -69,6 +71,23 @@ def delete_velero_resource(resource: Backup | Restore, client: DynamicClient) ->
         )
 
         raise
+
+
+def get_velero_backup_logs(backup_name: str, client: DynamicClient) -> str:
+    """
+    Retrieve Velero backup logs using the Velero CLI inside the Velero pod.
+
+    Args:
+        backup_name: Name of the Velero backup resource.
+        client: Kubernetes dynamic client used to locate the Velero pod.
+
+    Returns:
+        The backup log output as a string.
+    """
+    velero_pod = get_pod_by_name_prefix(client=client, pod_prefix="velero", namespace=ADP_NAMESPACE)
+    command = ["./velero", "backup", "logs", backup_name]
+    LOGGER.info(f"Retrieving Velero backup logs: backup={backup_name}")
+    return velero_pod.execute(command=command)
 
 
 def _velero_teardown(resource, exception_type, exception_value, traceback):
@@ -189,6 +208,49 @@ def create_rhel_vm(
         cleanup_artifactory_secret_and_config_map(
             artifactory_secret=artifactory_secret, artifactory_config_map=artifactory_config_map
         )
+
+
+@contextmanager
+def create_rhel_vm_from_data_source(
+    data_source: DataSource,
+    namespace: str,
+    vm_name: str,
+    client: DynamicClient,
+    storage_class: str | None = None,
+    wait_running: bool = True,
+    annotations: dict[str, str] | None = None,
+) -> Generator[VirtualMachineForTests]:
+    """
+    Create a RHEL VM using a DataSource golden image.
+
+    Args:
+        data_source: DataSource pointing to a golden image PVC.
+        namespace: Namespace for the VM.
+        vm_name: Name for the VM.
+        client: Kubernetes dynamic client.
+        storage_class: Storage class for the cloned volume.
+        wait_running: Wait for the VM to reach Running state.
+        annotations: Annotations to set on the VM.
+
+    Yields:
+        VirtualMachineForTests: The created VM.
+    """
+    with VirtualMachineForTests(
+        client=client,
+        name=vm_name,
+        namespace=namespace,
+        os_flavor=OS_FLAVOR_RHEL,
+        memory_guest=Images.Rhel.DEFAULT_MEMORY_SIZE,
+        data_volume_template=data_volume_template_with_source_ref_dict(
+            data_source=data_source,
+            storage_class=storage_class,
+        ),
+        run_strategy=VirtualMachine.RunStrategy.ALWAYS,
+        annotations=annotations,
+    ) as vm:
+        if wait_running:
+            running_vm(vm=vm, wait_for_interfaces=True)
+        yield vm
 
 
 class VeleroRestore(Restore):

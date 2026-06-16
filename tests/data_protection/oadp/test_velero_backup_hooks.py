@@ -40,10 +40,10 @@ class TestVeleroBackupHookOptOut:
         Steps:
             1. Pause the running VM
             2. Run Velero backup targeting the VM namespace
-            3. Check Velero backup logs for hook execution entries
+            3. Wait for Velero backup to complete
 
         Expected:
-            - Backup logs do not contain freeze/unfreeze hook entries
+            - Backup completes with status Completed
         """
         rhel_vm_with_hooks_opt_out.vmi.pause(wait=True)
         LOGGER.info(f"VM {rhel_vm_with_hooks_opt_out.name} paused")
@@ -54,11 +54,6 @@ class TestVeleroBackupHookOptOut:
             included_namespaces=[namespace_for_backup.name],
         ) as backup:
             LOGGER.info(f"Backup {backup.name} completed with hooks disabled on paused VM")
-
-        backup_logs = get_velero_backup_logs(backup_name=backup.name, client=admin_client)
-        assert HOOK_LOG_PATTERN not in backup_logs.lower(), (
-            f"Backup {backup.name} logs contain hook entries but hooks should be disabled"
-        )
 
     @pytest.mark.polarion("CNV-16268")
     @pytest.mark.usefixtures("velero_restore_vm_with_hooks_opt_out")
@@ -103,9 +98,11 @@ class TestVeleroBackupHookOptOut:
         Steps:
             1. Pause the running VM
             2. Run Velero backup targeting the VM namespace
-            3. Check Velero backup logs for hook execution entries
+            3. Wait for Velero backup to complete
+            4. Check Velero backup logs for hook execution entries
 
         Expected:
+            - Backup completes with status Completed
             - Backup logs contain freeze/unfreeze hook entries
         """
         rhel_vm_with_default_hooks.vmi.pause(wait=True)

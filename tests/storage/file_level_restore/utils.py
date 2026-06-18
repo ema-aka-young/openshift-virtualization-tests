@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import shlex
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -29,6 +30,9 @@ FILE_RESTORE_OPERATOR_DEPLOYMENT_NAME = "vm-file-restore-operator"
 FILERESTORE_SCRIPT_PATH = str(_MANIFESTS_DIR / "filerestore.sh")
 FILE_RESTORE_OPERATOR_INSTALL_YAML = str(_MANIFESTS_DIR / "install.yaml")
 BACKUP_MOUNT_PREFIX = "/backup"
+WINDOWS_BACKUP_MOUNT_PREFIX = r"C:\backup"
+WINDOWS_FILERESTORE_SCRIPT_PATH = str(_MANIFESTS_DIR / "filerestore.bat")
+_FILERESTORE_WINDOWS_TARGET_PATH = r"C:\Program Files\filerestore\filerestore.bat"
 _OPERATOR_REPO_RAW_URL = "https://raw.githubusercontent.com/kubevirt/vm-file-restore-operator/refs/heads/main"
 SETUP_SCRIPT_URL = f"{_OPERATOR_REPO_RAW_URL}/guest-helpers/linux/setup.sh"
 
@@ -243,6 +247,136 @@ def configure_vm_for_file_restore(
         )
 
     LOGGER.info(f"VM '{vm.name}' configured for file-restore operator")
+
+
+def _transfer_file_to_windows_vm(
+    vm: VirtualMachineForTests,
+    local_path: str,
+    remote_path: str,
+) -> None:
+    """Transfer a local file to a Windows VM via SFTP.
+
+    Args:
+        vm: The running Windows VM.
+        local_path: Local filesystem path to the file.
+        remote_path: Target Windows filesystem path on the VM.
+    """
+    LOGGER.info(f"Transferring '{local_path}' to '{remote_path}' on VM '{vm.name}'")
+    remote_dir = remote_path.rsplit("\\", 1)[0]
+    run_ssh_commands(
+        host=vm.ssh_exec,
+        commands=[
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            f"New-Item -ItemType Directory -Path '{remote_dir}' -Force | Out-Null",
+        ],
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+    sftp_path = remote_path.replace("\\", "/")
+    vm.ssh_exec.fs.put(local_path, sftp_path)
+    LOGGER.info(f"File transferred to '{remote_path}' on VM '{vm.name}'")
+
+
+def configure_windows_vm_for_file_restore(
+    vm: VirtualMachineForTests,
+    ssh_public_key: str,
+    filerestore_script_path: str = WINDOWS_FILERESTORE_SCRIPT_PATH,
+) -> None:
+    """Configure a Windows VM for file-restore operator operations.
+
+    Transfers the filerestore.bat helper script from a local path and
+    performs the setup steps (user creation, SSH key installation, sshd
+    configuration) directly via PowerShell commands. This avoids
+    downloading from GitHub, which is unreachable from test VMs.
+
+    Args:
+        vm: The running Windows VM to configure.
+        ssh_public_key: The operator's SSH public key to install.
+        filerestore_script_path: Local path to filerestore.bat to install
+            on the VM.
+    """
+    LOGGER.info(f"Configuring Windows VM '{vm.name}' for file-restore operator")
+
+    _transfer_file_to_windows_vm(
+        vm=vm,
+        local_path=filerestore_script_path,
+        remote_path=_FILERESTORE_WINDOWS_TARGET_PATH,
+    )
+
+    LOGGER.info(f"Creating filerestore user on Windows VM '{vm.name}'")
+    create_user_cmd = (
+        "if (-not (Get-LocalUser -Name 'filerestore' -ErrorAction SilentlyContinue))"
+        " { Add-Type -AssemblyName System.Web;"
+        " $pw = [System.Web.Security.Membership]::GeneratePassword(20, 3);"
+        " $sec = ConvertTo-SecureString $pw -AsPlainText -Force;"
+        " New-LocalUser -Name 'filerestore' -Password $sec"
+        " -PasswordNeverExpires -AccountNeverExpires"
+        " -UserMayNotChangePassword"
+        " -Description 'VM File Restore Operator service account';"
+        " Add-LocalGroupMember -Group 'Administrators' -Member 'filerestore';"
+        " Write-Host 'User filerestore created'"
+        " } else { Write-Host 'User filerestore already exists' }"
+    )
+    run_ssh_commands(
+        host=vm.ssh_exec,
+        commands=["powershell", "-NoProfile", "-Command", create_user_cmd],
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+
+    LOGGER.info(f"Installing SSH key on Windows VM '{vm.name}'")
+    restricted_key = f'command="C:\\Program Files\\filerestore\\filerestore.bat" {ssh_public_key.strip()}\n'
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+        tmp.write(restricted_key)
+        tmp_path = tmp.name
+    try:
+        run_ssh_commands(
+            host=vm.ssh_exec,
+            commands=[
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "New-Item -ItemType Directory -Path 'C:\\ProgramData\\ssh' -Force | Out-Null",
+            ],
+            wait_timeout=TIMEOUT_2MIN,
+            sleep=TIMEOUT_5SEC,
+        )
+        vm.ssh_exec.fs.put(tmp_path, "C:/ProgramData/ssh/administrators_authorized_keys")
+    finally:
+        Path(tmp_path).unlink()
+    acl_cmd = (
+        "$path = 'C:\\ProgramData\\ssh\\administrators_authorized_keys';"
+        " icacls $path /inheritance:r | Out-Null;"
+        " icacls $path /grant 'SYSTEM:F' | Out-Null;"
+        " icacls $path /grant 'Administrators:F' | Out-Null"
+    )
+    run_ssh_commands(
+        host=vm.ssh_exec,
+        commands=["powershell", "-NoProfile", "-Command", acl_cmd],
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+
+    LOGGER.info(f"Configuring sshd on Windows VM '{vm.name}'")
+    configure_sshd_cmd = (
+        "$cfg = 'C:\\ProgramData\\ssh\\sshd_config';"
+        " if (Test-Path $cfg)"
+        " { $content = Get-Content $cfg;"
+        " $content = $content -replace '#\\s*PubkeyAuthentication.*','PubkeyAuthentication yes';"
+        " Set-Content -Path $cfg -Value $content;"
+        " Restart-Service sshd;"
+        " Write-Host 'sshd configured and restarted' }"
+    )
+    run_ssh_commands(
+        host=vm.ssh_exec,
+        commands=["powershell", "-NoProfile", "-Command", configure_sshd_cmd],
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+
+    LOGGER.info(f"Windows VM '{vm.name}' configured for file-restore operator")
 
 
 def vm_root_disk_pvc_name(vm: VirtualMachineForTests) -> str:

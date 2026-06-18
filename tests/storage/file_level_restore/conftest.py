@@ -12,18 +12,23 @@ from pyhelper_utils.shell import run_ssh_commands
 from tests.storage.file_level_restore.utils import (
     FILE_RESTORE_OPERATOR_INSTALL_YAML,
     configure_vm_for_file_restore,
+    configure_windows_vm_for_file_restore,
     get_operator_ssh_public_key,
     install_file_restore_operator,
     uninstall_file_restore_operator,
     vm_root_disk_pvc_name,
 )
+from tests.utils import create_windows2022_dv_from_registry
 from utilities.constants import (
     OS_FLAVOR_RHEL,
+    OS_FLAVOR_WIN_CONTAINER_DISK,
     RHEL10_PREFERENCE,
     TIMEOUT_2MIN,
     TIMEOUT_5MIN,
     TIMEOUT_5SEC,
+    U1_LARGE,
     U1_SMALL,
+    WINDOWS_2K22_PREFERENCE,
 )
 from utilities.hco import ResourceEditorValidateHCOReconcile
 from utilities.storage import (
@@ -32,8 +37,9 @@ from utilities.storage import (
     volume_snapshot_class_for_sc,
     wait_for_volume_snapshot_ready_to_use,
     write_file_via_ssh,
+    write_file_windows_vm,
 )
-from utilities.virt import VirtualMachineForTests, running_vm
+from utilities.virt import VirtualMachineForTests, running_vm, wait_for_windows_vm
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +49,9 @@ DATA_DISK_DEVICE = "/dev/vdc"
 DATA_DISK_MOUNT_PATH = "/mnt/data"
 BIG_FILE_RELATIVE_PATH = "/big-test-file.bin"
 BIG_FILE_SIZE_BYTES = str(1024 * 1024 * 1024)
+WINDOWS_TEST_FILE_PATH = "C:/Users/Public/test-restore.txt"
+WINDOWS_TEST_FILE_CONTENT = "windows-file-restore-test-content"
+WINDOWS_SOURCE_PATH = r"C:\Users\Public\test-restore.txt"
 
 
 @pytest.fixture(scope="session")
@@ -419,3 +428,110 @@ def data_disk_snapshot(
             name=snapshot.name,
         )
         yield snapshot
+
+
+# --- Windows fixtures ---
+
+
+@pytest.fixture(scope="class")
+def windows_dv_template(admin_client, namespace, snapshot_storage_class_name_scope_module):
+    """Windows 2022 DataVolume template from registry container disk."""
+    with create_windows2022_dv_from_registry(
+        dv_name="file-restore-windows-dv",
+        namespace=namespace.name,
+        client=admin_client,
+        storage_class=snapshot_storage_class_name_scope_module,
+    ) as dv_dict:
+        yield dv_dict
+
+
+@pytest.fixture(scope="class")
+def windows_file_restore_vm(
+    admin_client,
+    namespace,
+    windows_dv_template,
+    file_restore_ssh_public_key,
+):
+    """Running Windows 2022 VM configured with the filerestore user, SSH key, and helper script."""
+    with VirtualMachineForTests(
+        name="file-restore-windows-vm",
+        namespace=namespace.name,
+        client=admin_client,
+        os_flavor=OS_FLAVOR_WIN_CONTAINER_DISK,
+        vm_instance_type=VirtualMachineClusterInstancetype(
+            client=admin_client,
+            name=U1_LARGE,
+        ),
+        vm_preference=VirtualMachineClusterPreference(
+            client=admin_client,
+            name=WINDOWS_2K22_PREFERENCE,
+        ),
+        data_volume_template=windows_dv_template,
+    ) as vm:
+        running_vm(vm=vm)
+        wait_for_windows_vm(vm=vm, version="2022")
+        configure_windows_vm_for_file_restore(
+            vm=vm,
+            ssh_public_key=file_restore_ssh_public_key,
+        )
+        yield vm
+
+
+@pytest.fixture(scope="class")
+def test_file_on_windows_vm(windows_file_restore_vm):
+    """Test file written to the Windows VM. Yields (path, content)."""
+    write_file_windows_vm(
+        vm=windows_file_restore_vm,
+        file_path=WINDOWS_TEST_FILE_PATH,
+        content=WINDOWS_TEST_FILE_CONTENT,
+    )
+    yield WINDOWS_TEST_FILE_PATH, WINDOWS_TEST_FILE_CONTENT
+
+
+@pytest.fixture(scope="class")
+def windows_vm_disk_snapshot(
+    windows_file_restore_vm,
+    test_file_on_windows_vm,
+    namespace,
+    admin_client,
+    snapshot_storage_class_name_scope_module,
+):
+    """VolumeSnapshot of the Windows VM's root disk, taken while the VM is running."""
+    LOGGER.info("Flushing Windows filesystem cache before snapshot")
+    run_ssh_commands(
+        host=windows_file_restore_vm.ssh_exec,
+        commands=["powershell", "-NoProfile", "-Command", "Write-VolumeCache -DriveLetter C"],
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+    pvc_name = vm_root_disk_pvc_name(vm=windows_file_restore_vm)
+    vsc_name = volume_snapshot_class_for_sc(
+        sc_name=snapshot_storage_class_name_scope_module,
+        client=admin_client,
+    )
+    LOGGER.info(f"Creating VolumeSnapshot of Windows PVC '{pvc_name}' with VolumeSnapshotClass '{vsc_name}'")
+    with VolumeSnapshot(
+        name="file-restore-windows-snapshot",
+        namespace=namespace.name,
+        source={"persistentVolumeClaimName": pvc_name},
+        volume_snapshot_class_name=vsc_name,
+    ) as snapshot:
+        wait_for_volume_snapshot_ready_to_use(
+            namespace=namespace.name,
+            name=snapshot.name,
+        )
+        yield snapshot
+
+
+@pytest.fixture()
+def deleted_test_file_on_windows_vm(windows_file_restore_vm, windows_vm_disk_snapshot, test_file_on_windows_vm):
+    """Test file deleted from the Windows VM after snapshot. Yields (path, content)."""
+    test_file_path, test_file_content = test_file_on_windows_vm
+    LOGGER.info(f"Deleting test file '{test_file_path}' from Windows VM for automatic restore test")
+    run_ssh_commands(
+        host=windows_file_restore_vm.ssh_exec,
+        commands=shlex.split(f"powershell -command \"Remove-Item -Path '{test_file_path}' -Force\""),
+        wait_timeout=TIMEOUT_2MIN,
+        sleep=TIMEOUT_5SEC,
+    )
+    yield test_file_path, test_file_content

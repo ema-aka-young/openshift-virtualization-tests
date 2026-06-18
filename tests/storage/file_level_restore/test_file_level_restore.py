@@ -9,14 +9,21 @@ from contextlib import ExitStack
 
 import pytest
 
-from tests.storage.file_level_restore.conftest import BIG_FILE_RELATIVE_PATH, TEST_FILE_PATH
+from tests.storage.file_level_restore.conftest import (
+    BIG_FILE_RELATIVE_PATH,
+    TEST_FILE_PATH,
+    WINDOWS_SOURCE_PATH,
+    WINDOWS_TEST_FILE_CONTENT,
+    WINDOWS_TEST_FILE_PATH,
+)
 from tests.storage.file_level_restore.utils import (
     BACKUP_MOUNT_PREFIX,
+    WINDOWS_BACKUP_MOUNT_PREFIX,
     VirtualMachineFileRestore,
     wait_for_file_restore_phase,
 )
 from utilities.constants import TIMEOUT_10MIN
-from utilities.storage import run_command_on_vm_and_check_output
+from utilities.storage import run_command_on_vm_and_check_output, verify_file_in_windows_vm
 
 
 @pytest.mark.usefixtures("enabled_declarative_hotplug_volumes", "file_restore_operator")
@@ -406,3 +413,95 @@ class TestFileRestoreConcurrentMultiVM:
             command=f"cat {data_relative_path}",
             expected_result=data_file_content,
         )
+
+
+@pytest.mark.tier3
+@pytest.mark.usefixtures("enabled_declarative_hotplug_volumes", "file_restore_operator")
+class TestFileRestoreWindows:
+    @pytest.mark.polarion("CNV-xxx9")
+    def test_manual_file_restore_from_windows_snapshot(
+        self,
+        admin_client,
+        namespace,
+        windows_file_restore_vm,
+        windows_vm_disk_snapshot,
+        test_file_on_windows_vm,
+    ):
+        """Test manual restore from a Windows VM VolumeSnapshot source.
+
+        Preconditions:
+            - File-restore operator installed in the cluster
+            - Running Windows Server 2022 VM configured with filerestore user and helper script
+            - VolumeSnapshot of the Windows VM's root disk containing a test file
+
+        Steps:
+            1. Create a VirtualMachineFileRestore CR with VolumeSnapshot source, without sourcePath (manual mode)
+            2. Wait for VolumeReady phase
+
+        Expected:
+            The backup volume is mounted via junction and the test file
+            is accessible at the backup path
+        """
+        test_file_path, test_file_content = test_file_on_windows_vm
+        relative_path = test_file_path.split(":", maxsplit=1)[1].lstrip("/")
+        backup_file_path = f"{WINDOWS_BACKUP_MOUNT_PREFIX}-{windows_vm_disk_snapshot.name}/{relative_path}"
+        with VirtualMachineFileRestore(
+            name="test-windows-manual-restore",
+            namespace=namespace.name,
+            target_vm_name=windows_file_restore_vm.name,
+            source_snapshot_name=windows_vm_disk_snapshot.name,
+            client=admin_client,
+        ) as file_restore:
+            wait_for_file_restore_phase(
+                file_restore=file_restore,
+                target_phase=VirtualMachineFileRestore.Phase.VOLUME_READY,
+            )
+            verify_file_in_windows_vm(
+                windows_vm=windows_file_restore_vm,
+                file_name_with_path=backup_file_path,
+                file_content=test_file_content,
+            )
+
+    @pytest.mark.polarion("CNV-xxx10")
+    @pytest.mark.usefixtures("deleted_test_file_on_windows_vm")
+    def test_automatic_file_restore_from_windows_snapshot(
+        self,
+        admin_client,
+        namespace,
+        windows_file_restore_vm,
+        windows_vm_disk_snapshot,
+    ):
+        """Test automatic restore from a Windows VM VolumeSnapshot source.
+
+        Preconditions:
+            - File-restore operator installed in the cluster
+            - Running Windows Server 2022 VM configured with filerestore user and helper script
+            - VolumeSnapshot of the Windows VM's root disk containing a test file
+            - Test file deleted from the Windows VM after snapshot
+
+        Steps:
+            1. Create a VirtualMachineFileRestore CR with VolumeSnapshot source and sourcePath (automatic mode)
+            2. Wait for Succeeded phase
+
+        Expected:
+            The test file is restored to its original location
+            with the original content
+        """
+        with VirtualMachineFileRestore(
+            name="test-windows-auto-restore",
+            namespace=namespace.name,
+            target_vm_name=windows_file_restore_vm.name,
+            source_snapshot_name=windows_vm_disk_snapshot.name,
+            source_path=WINDOWS_SOURCE_PATH,
+            client=admin_client,
+        ) as file_restore:
+            wait_for_file_restore_phase(
+                file_restore=file_restore,
+                target_phase=VirtualMachineFileRestore.Phase.SUCCEEDED,
+                timeout=TIMEOUT_10MIN,
+            )
+            verify_file_in_windows_vm(
+                windows_vm=windows_file_restore_vm,
+                file_name_with_path=WINDOWS_TEST_FILE_PATH,
+                file_content=WINDOWS_TEST_FILE_CONTENT,
+            )

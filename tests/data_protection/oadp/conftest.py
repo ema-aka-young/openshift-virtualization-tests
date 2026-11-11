@@ -162,11 +162,13 @@ def rhel_vm_with_data_volume_template(
 
 @pytest.fixture()
 def windows_vm_with_data_volume_template(
+    request,
     admin_client,
     namespace_for_backup,
     snapshot_storage_class_name_scope_module,
 ):
-    """Windows 2022 VM with InstanceType and Preference in the backup namespace for OADP backup testing."""
+    """Running Windows VM for OADP testing, with an optional indirectly parametrized image path."""
+    image_path = getattr(request, "param", py_config["latest_windows_os_dict"][CONTAINER_DISK_IMAGE_PATH_STR])
     artifactory_secret = None
     artifactory_config_map = None
 
@@ -180,10 +182,7 @@ def windows_vm_with_data_volume_template(
             storage_class=snapshot_storage_class_name_scope_module,
             source_dict=construct_datavolume_source_dict(
                 source="registry",
-                url=(
-                    f"{get_test_artifact_server_url(schema='registry')}/"
-                    f"{py_config['latest_windows_os_dict'][CONTAINER_DISK_IMAGE_PATH_STR]}"
-                ),
+                url=f"{get_test_artifact_server_url(schema='registry')}/{image_path}",
                 secret_name=artifactory_secret.name,
                 cert_configmap_name=artifactory_config_map.name,
             ),
